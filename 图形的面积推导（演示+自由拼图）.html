@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>几何图形面积公式推导探索</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自定义滑块样式，使其更美观 */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #e5e7eb;
+            border-radius: 3px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            background: #2563eb;
+            transform: scale(1.1);
+        }
+        /* 隐藏不需要的元素 */
+        .hidden-item { display: none !important; }
+        
+        svg {
+            user-select: none;
+            touch-action: none; /* 防止在SVG上滑动时触发浏览器滚动 */
+        }
+        .cursor-cut { cursor: crosshair; }
+        .cursor-drag { cursor: grab; }
+        .cursor-drag:active { cursor: grabbing; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 h-screen flex flex-col">
+
+    <!-- 顶部导航条 -->
+    <header class="bg-white shadow-sm border-b border-gray-200 py-4 px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <h1 class="text-2xl font-bold text-blue-600 flex items-center gap-2">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+            面积公式可视化推导
+        </h1>
+        <div class="flex flex-wrap gap-4 items-center justify-center">
+            <!-- 模式切换 -->
+            <div class="flex bg-blue-50 p-1 rounded-lg border border-blue-100 shadow-inner">
+                <button id="mode-demo" class="bg-white shadow-sm text-blue-600 font-bold px-4 py-2 rounded-md transition-all text-sm">公式推导演示</button>
+                <button id="mode-sandbox" class="text-gray-500 hover:text-blue-600 font-medium px-4 py-2 rounded-md transition-all text-sm">自由切割拼图</button>
+            </div>
+            <!-- 图形切换 -->
+            <div class="flex gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200">
+                <button class="shape-btn active bg-white shadow-sm text-gray-800 font-medium px-3 py-2 rounded-md transition-all text-sm" data-shape="parallelogram">平行四边形</button>
+                <button class="shape-btn text-gray-500 hover:bg-gray-200 font-medium px-3 py-2 rounded-md transition-all text-sm" data-shape="triangle">三角形</button>
+                <button class="shape-btn text-gray-500 hover:bg-gray-200 font-medium px-3 py-2 rounded-md transition-all text-sm" data-shape="trapezoid">梯形</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主体内容 -->
+    <main class="flex-1 flex flex-col lg:flex-row p-6 gap-6 overflow-hidden">
+        
+        <!-- 左侧控制面板 -->
+        <aside class="w-full lg:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2">
+            
+            <!-- 参数调节区 -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-bold mb-4 text-gray-700 border-b pb-2">调整初始图形参数</h2>
+                
+                <div class="space-y-4">
+                    <!-- 滑块 A (底 / 上底) -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label id="label-a" class="text-sm font-medium text-gray-700">底 (a)</label>
+                            <span id="val-a" class="text-sm text-blue-600 font-bold">150</span>
+                        </div>
+                        <input type="range" id="slider-a" min="50" max="250" value="150" step="1">
+                    </div>
+
+                    <!-- 滑块 B (下底 - 仅梯形可见) -->
+                    <div id="container-b" class="hidden-item">
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm font-medium text-gray-700">下底 (b)</label>
+                            <span id="val-b" class="text-sm text-blue-600 font-bold">200</span>
+                        </div>
+                        <input type="range" id="slider-b" min="50" max="250" value="200" step="1">
+                    </div>
+
+                    <!-- 滑块 H (高) -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm font-medium text-gray-700">高 (h)</label>
+                            <span id="val-h" class="text-sm text-blue-600 font-bold">120</span>
+                        </div>
+                        <input type="range" id="slider-h" min="50" max="200" value="120" step="1">
+                    </div>
+
+                    <!-- 滑块 Offset (形状倾斜) -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm font-medium text-gray-700">倾斜度</label>
+                            <span id="val-o" class="text-sm text-blue-600 font-bold">60</span>
+                        </div>
+                        <input type="range" id="slider-o" min="0" max="150" value="60" step="1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 动画控制区 (演示模式可见) -->
+            <div id="panel-demo" class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-bold mb-4 text-gray-700 border-b pb-2">推导动画演示</h2>
+                
+                <div class="flex gap-3 mb-4">
+                    <button id="btn-play" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
+                        播放演示
+                    </button>
+                    <button id="btn-reset" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg transition-colors">
+                        重置
+                    </button>
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-sm font-medium text-gray-500">推导进度</label>
+                        <span id="val-progress" class="text-sm text-gray-500">0%</span>
+                    </div>
+                    <input type="range" id="slider-progress" min="0" max="1" value="0" step="0.01" class="w-full">
+                </div>
+            </div>
+
+            <!-- 公式与原理解释区 (演示模式可见) -->
+            <div id="panel-formula" class="bg-blue-50 p-5 rounded-xl shadow-sm border border-blue-100 flex-1">
+                <h2 class="text-lg font-bold mb-3 text-blue-800 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    推导原理解析
+                </h2>
+                <div id="formula-text" class="text-gray-700 leading-relaxed space-y-2">
+                    <!-- 内容由JS动态填充 -->
+                </div>
+            </div>
+
+            <!-- 自由切割控制区 (沙盒模式可见) -->
+            <div id="panel-sandbox" class="hidden-item bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex-1 flex flex-col">
+                <h2 class="text-lg font-bold mb-2 text-gray-700 border-b pb-2 flex items-center gap-2">
+                    <span class="text-xl">🛠️</span> 工具箱
+                </h2>
+                <p id="sandbox-hint" class="text-sm text-gray-500 mb-4">在右侧画板中自由操作验证“割补法”吧。</p>
+                
+                <div class="flex gap-2 mb-6">
+                    <button id="tool-cut" class="flex-1 bg-blue-100 text-blue-700 border-2 border-blue-400 font-bold py-3 px-2 rounded-lg transition-colors flex flex-col items-center justify-center shadow-sm">
+                        <span class="text-2xl mb-1">✂️</span> 划线切割
+                    </button>
+                    <button id="tool-copy" class="flex-1 hidden-item bg-green-50 text-green-600 border-2 border-green-300 hover:bg-green-100 font-bold py-3 px-2 rounded-lg transition-colors flex flex-col items-center justify-center shadow-sm">
+                        <span class="text-2xl mb-1">➕</span> 复制图形
+                    </button>
+                    <button id="tool-drag" class="flex-1 bg-gray-50 text-gray-500 border-2 border-transparent hover:bg-gray-100 font-bold py-3 px-2 rounded-lg transition-colors flex flex-col items-center justify-center">
+                        <span class="text-2xl mb-1">🖐️</span> 拖动碎片
+                    </button>
+                </div>
+                
+                <div class="mt-auto flex flex-col gap-2">
+                    <div class="flex gap-2">
+                        <button id="btn-undo" disabled class="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold py-2 px-2 rounded-lg transition-colors border border-gray-200 flex items-center justify-center gap-1 opacity-50 cursor-not-allowed">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg> 撤销
+                        </button>
+                        <button id="btn-reset-view" class="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-2 rounded-lg transition-colors border border-indigo-200 flex items-center justify-center gap-1">
+                            🔍 视角归位
+                        </button>
+                    </div>
+                    <button id="btn-reset-shape" class="w-full bg-orange-100 hover:bg-orange-200 text-orange-700 font-bold py-3 px-4 rounded-lg transition-colors border border-orange-200">
+                        🔄 恢复完整图形
+                    </button>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- 右侧可视化画板 -->
+        <section class="w-full lg:w-2/3 bg-white rounded-xl shadow-sm border border-gray-200 relative flex items-center justify-center overflow-hidden">
+            <svg id="canvas" viewBox="0 0 700 450" class="w-full h-full relative z-10"></svg>
+        </section>
+        
+    </main>
+
+    <script>
+        // --- 状态管理 ---
+        const state = {
+            mode: 'demo', // 'demo' (演示) 或 'sandbox' (自由探索)
+            sandboxViewBox: { x: 0, y: 0, w: 700, h: 450 },
+            sandboxTool: 'cut', // 'cut' (切割) 或 'drag' (拖拽)
+            sandboxPolygons: [], // 沙盒模式下的碎片数组 [{points: [{x,y}...], color, stroke}]
+            history: [],         // 撤销历史记录栈
+            dragStartStateStr: null, // 拖拽旋转起始状态缓存
+            dragStartMousePos: null, // 绝对拖拽起始鼠标坐标
+            dragStartPolyPoints: null, // 绝对拖拽起始多边形顶点
+            sandboxAction: 'idle', // 'idle', 'cutting', 'dragging', 'rotating'
+            activePolyIdx: -1,   // 当前选中的多边形索引（用于显示旋转手柄）
+            rotateCenter: null,  // 旋转中心
+            cutStart: null,
+            cutEnd: null,
+            dragTargetIdx: -1,
+            lastMousePos: null,
+            lastClickTime: 0,
+            lastClickedPoly: null,
+            colorPalette: ['#bfdbfe', '#fde047', '#bbf7d0', '#fbcfe8', '#fed7aa', '#e9d5ff', '#c7d2fe', '#fecaca'],
+
+            shape: 'parallelogram', // parallelogram, triangle, trapezoid
+            a: 150,      // 平行四边形/三角形的底，梯形的上底
+            b: 200,      // 梯形的下底
+            h: 120,      // 高
+            offset: 60,  // 顶部顶点的水平偏移量
+            progress: 0, // 动画进度 0 到 1
+            animating: false
+        };
+
+        // --- DOM 元素引用 ---
+        const els = {
+            btnModeDemo: document.getElementById('mode-demo'),
+            btnModeSandbox: document.getElementById('mode-sandbox'),
+            panelDemo: document.getElementById('panel-demo'),
+            panelSandbox: document.getElementById('panel-sandbox'),
+            panelFormula: document.getElementById('panel-formula'),
+            btnToolCut: document.getElementById('tool-cut'),
+            btnToolCopy: document.getElementById('tool-copy'),
+            btnToolDrag: document.getElementById('tool-drag'),
+            btnUndo: document.getElementById('btn-undo'),
+            btnResetView: document.getElementById('btn-reset-view'),
+            btnResetShape: document.getElementById('btn-reset-shape'),
+            sandboxHint: document.getElementById('sandbox-hint'),
+
+            btns: document.querySelectorAll('.shape-btn'),
+            sA: document.getElementById('slider-a'),
+            sB: document.getElementById('slider-b'),
+            sH: document.getElementById('slider-h'),
+            sO: document.getElementById('slider-o'),
+            sProg: document.getElementById('slider-progress'),
+            vA: document.getElementById('val-a'),
+            vB: document.getElementById('val-b'),
+            vH: document.getElementById('val-h'),
+            vO: document.getElementById('val-o'),
+            vProg: document.getElementById('val-progress'),
+            conB: document.getElementById('container-b'),
+            lblA: document.getElementById('label-a'),
+            btnPlay: document.getElementById('btn-play'),
+            btnReset: document.getElementById('btn-reset'),
+            formulaText: document.getElementById('formula-text'),
+            svg: document.getElementById('canvas')
+        };
+
+        const SVG_NS = "http://www.w3.org/2000/svg";
+        const START_X = 150; // 图形绘制基准点 X
+        const START_Y = 350; // 图形绘制基准点 Y
+
+        // --- 初始化与事件绑定 ---
+        function init() {
+            // 模式切换
+            els.btnModeDemo.addEventListener('click', () => setMode('demo'));
+            els.btnModeSandbox.addEventListener('click', () => setMode('sandbox'));
+
+            // 沙盒工具切换
+            els.btnToolCut.addEventListener('click', () => setSandboxTool('cut'));
+            els.btnToolCopy.addEventListener('click', handleCopyShape);
+            els.btnToolDrag.addEventListener('click', () => setSandboxTool('drag'));
+            els.btnUndo.addEventListener('click', handleUndo);
+            els.btnResetView.addEventListener('click', () => {
+                state.sandboxViewBox = { x: 0, y: 0, w: 700, h: 450 };
+                updateViewBox();
+            });
+            els.btnResetShape.addEventListener('click', () => initSandboxShape());
+
+            // 缩放功能 (仅沙盒模式)
+            els.svg.addEventListener('wheel', (e) => {
+                if (state.mode !== 'sandbox') return;
+                e.preventDefault();
+
+                const zoomFactor = 1.1;
+                const direction = e.deltaY > 0 ? 1 : -1;
+                const scale = direction > 0 ? zoomFactor : 1 / zoomFactor;
+
+                // 缩放前获取鼠标当前映射到SVG内部的精确坐标
+                const pt = getMousePos(e);
+                
+                const newW = state.sandboxViewBox.w * scale;
+                const newH = state.sandboxViewBox.h * scale;
+
+                // 限制缩放级别范围
+                if (newW > 4000 || newW < 100) return;
+
+                // 计算鼠标所在点相对于整个视口的比例
+                const relX = (pt.x - state.sandboxViewBox.x) / state.sandboxViewBox.w;
+                const relY = (pt.y - state.sandboxViewBox.y) / state.sandboxViewBox.h;
+
+                // 调整ViewBox起始点，确保缩放以鼠标为中心
+                state.sandboxViewBox.x = pt.x - relX * newW;
+                state.sandboxViewBox.y = pt.y - relY * newH;
+                state.sandboxViewBox.w = newW;
+                state.sandboxViewBox.h = newH;
+
+                updateViewBox();
+            }, { passive: false });
+
+            // 图形切换按钮
+            els.btns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    els.btns.forEach(b => {
+                        b.classList.remove('active', 'bg-white', 'shadow-sm', 'text-gray-800');
+                        b.classList.add('text-gray-500');
+                    });
+                    e.target.classList.add('active', 'bg-white', 'shadow-sm', 'text-gray-800');
+                    e.target.classList.remove('text-gray-500');
+                    
+                    setShape(e.target.dataset.shape);
+                });
+            });
+
+            // 沙盒鼠标/触摸事件 (划线与拖拽)
+            els.svg.addEventListener('mousedown', handleMouseDown);
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            // 移动端支持
+            els.svg.addEventListener('touchstart', handleTouchStart, {passive: false});
+            window.addEventListener('touchmove', handleTouchMove, {passive: false});
+            window.addEventListener('touchend', handleMouseUp);
+
+            // 滑块事件
+            const bindSlider = (slider, prop, valEl) => {
+                slider.addEventListener('input', (e) => {
+                    state[prop] = parseFloat(e.target.value);
+                    valEl.textContent = state[prop];
+                    
+                    if (state.shape === 'parallelogram' && prop === 'a') {
+                        els.sO.max = state.a;
+                        if(state.offset > state.a) {
+                            state.offset = state.a;
+                            els.sO.value = state.a;
+                            els.vO.textContent = state.a;
+                        }
+                    }
+                    resetAnimation();
+                });
+            };
+
+            bindSlider(els.sA, 'a', els.vA);
+            bindSlider(els.sB, 'b', els.vB);
+            bindSlider(els.sH, 'h', els.vH);
+            bindSlider(els.sO, 'offset', els.vO);
+
+            // 进度条事件
+            els.sProg.addEventListener('input', (e) => {
+                state.progress = parseFloat(e.target.value);
+                els.vProg.textContent = Math.round(state.progress * 100) + '%';
+                stopAnimation();
+                render();
+            });
+
+            // 按钮事件
+            els.btnPlay.addEventListener('click', toggleAnimation);
+            els.btnReset.addEventListener('click', resetAnimation);
+
+            // 初始状态
+            setShape('parallelogram');
+        }
+
+        // --- 模式控制 ---
+        function setMode(mode) {
+            state.mode = mode;
+            if (mode === 'demo') {
+                els.btnModeDemo.classList.replace('text-gray-500', 'text-blue-600');
+                els.btnModeDemo.classList.add('bg-white', 'shadow-sm');
+                els.btnModeSandbox.classList.remove('bg-white', 'shadow-sm', 'text-blue-600');
+                els.btnModeSandbox.classList.add('text-gray-500');
+                
+                els.panelDemo.classList.remove('hidden-item');
+                els.panelFormula.classList.remove('hidden-item');
+                els.panelSandbox.classList.add('hidden-item');
+                els.svg.classList.remove('cursor-cut', 'cursor-drag');
+            } else {
+                els.btnModeSandbox.classList.replace('text-gray-500', 'text-blue-600');
+                els.btnModeSandbox.classList.add('bg-white', 'shadow-sm');
+                els.btnModeDemo.classList.remove('bg-white', 'shadow-sm', 'text-blue-600');
+                els.btnModeDemo.classList.add('text-gray-500');
+
+                els.panelDemo.classList.add('hidden-item');
+                els.panelFormula.classList.add('hidden-item');
+                els.panelSandbox.classList.remove('hidden-item');
+                
+                stopAnimation();
+                initSandboxShape();
+                updateSandboxUI();
+            }
+            updateViewBox();
+            render();
+        }
+
+        function updateViewBox() {
+            if (state.mode === 'sandbox') {
+                els.svg.setAttribute('viewBox', `${state.sandboxViewBox.x} ${state.sandboxViewBox.y} ${state.sandboxViewBox.w} ${state.sandboxViewBox.h}`);
+            } else {
+                els.svg.setAttribute('viewBox', `0 0 700 450`);
+            }
+        }
+
+        function updateSandboxUI() {
+            if (state.shape === 'parallelogram') {
+                els.btnToolCut.classList.remove('hidden-item');
+                els.btnToolCopy.classList.add('hidden-item');
+                els.sandboxHint.innerHTML = "提示：使用<strong>划线切割</strong>，然后拖动碎片拼接成长方形。<br><span class='text-blue-600 font-bold'>技巧：双击碎片可水平翻折，拖拽上方手柄可自由旋转。</span>";
+                setSandboxTool('cut');
+            } else if (state.shape === 'triangle') {
+                els.btnToolCut.classList.remove('hidden-item');
+                els.btnToolCopy.classList.remove('hidden-item');
+                els.sandboxHint.innerHTML = "提示：使用<strong>复制图形</strong>或<strong>划线切割</strong>探索不同的面积推导法。<br><span class='text-blue-600 font-bold'>技巧：双击碎片可水平翻折，拖拽上方手柄可自由旋转。</span>";
+                setSandboxTool('drag');
+            } else if (state.shape === 'trapezoid') {
+                els.btnToolCut.classList.remove('hidden-item');
+                els.btnToolCopy.classList.remove('hidden-item');
+                els.sandboxHint.innerHTML = "提示：使用<strong>复制图形</strong>或<strong>划线切割</strong>探索不同的面积推导法。<br><span class='text-blue-600 font-bold'>技巧：双击碎片可水平翻折，拖拽上方手柄可自由旋转。</span>";
+                setSandboxTool('drag');
+            }
+        }
+
+        function setSandboxTool(tool) {
+            state.sandboxTool = tool;
+            state.activePolyIdx = -1; // 切换工具时取消选中状态
+            if (tool === 'cut') {
+                els.btnToolCut.classList.replace('bg-gray-50', 'bg-blue-100');
+                els.btnToolCut.classList.replace('text-gray-500', 'text-blue-700');
+                els.btnToolCut.classList.replace('border-transparent', 'border-blue-400');
+                
+                els.btnToolDrag.classList.replace('bg-blue-100', 'bg-gray-50');
+                els.btnToolDrag.classList.replace('text-blue-700', 'text-gray-500');
+                els.btnToolDrag.classList.replace('border-blue-400', 'border-transparent');
+                
+                els.svg.classList.add('cursor-cut');
+                els.svg.classList.remove('cursor-drag');
+            } else {
+                els.btnToolDrag.classList.replace('bg-gray-50', 'bg-blue-100');
+                els.btnToolDrag.classList.replace('text-gray-500', 'text-blue-700');
+                els.btnToolDrag.classList.replace('border-transparent', 'border-blue-400');
+                
+                els.btnToolCut.classList.replace('bg-blue-100', 'bg-gray-50');
+                els.btnToolCut.classList.replace('text-blue-700', 'text-gray-500');
+                els.btnToolCut.classList.replace('border-blue-400', 'border-transparent');
+
+                els.svg.classList.add('cursor-drag');
+                els.svg.classList.remove('cursor-cut');
+            }
+        }
+
+        // --- 核心逻辑 ---
+
+        function setShape(shape) {
+            state.shape = shape;
+            stopAnimation();
+            state.progress = 0;
+            els.sProg.value = 0;
+            els.vProg.textContent = '0%';
+
+            if (shape === 'parallelogram') {
+                els.lblA.textContent = '底 (a)';
+                els.conB.classList.add('hidden-item');
+                els.sO.max = state.a;
+                if(state.offset > state.a) state.offset = state.a;
+            } else if (shape === 'triangle') {
+                els.lblA.textContent = '底 (a)';
+                els.conB.classList.add('hidden-item');
+                els.sO.max = 150;
+            } else if (shape === 'trapezoid') {
+                els.lblA.textContent = '上底 (a)';
+                els.conB.classList.remove('hidden-item');
+                els.sO.max = 150;
+            }
+            
+            els.sO.value = state.offset;
+            els.vO.textContent = state.offset;
+            
+            if (state.mode === 'sandbox') {
+                initSandboxShape();
+                updateSandboxUI();
+            }
+            render();
+        }
+
+        let animFrame;
+        function toggleAnimation() {
+            if (state.animating) {
+                stopAnimation();
+            } else {
+                if (state.progress >= 1) state.progress = 0;
+                state.animating = true;
+                els.btnPlay.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg> 暂停演示`;
+                els.btnPlay.classList.replace('bg-blue-600', 'bg-orange-500');
+                els.btnPlay.classList.replace('hover:bg-blue-700', 'hover:bg-orange-600');
+                animate();
+            }
+        }
+
+        function stopAnimation() {
+            state.animating = false;
+            cancelAnimationFrame(animFrame);
+            els.btnPlay.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" fill-rule="evenodd"></path></svg> 继续演示`;
+            els.btnPlay.classList.replace('bg-orange-500', 'bg-blue-600');
+            els.btnPlay.classList.replace('hover:bg-orange-600', 'hover:bg-blue-700');
+            if(state.progress >= 1 || state.progress === 0) {
+                 els.btnPlay.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" fill-rule="evenodd"></path></svg> 播放演示`;
+            }
+        }
+
+        function resetAnimation() {
+            stopAnimation();
+            state.progress = 0;
+            els.sProg.value = 0;
+            els.vProg.textContent = '0%';
+            if (state.mode === 'sandbox') initSandboxShape();
+            render();
+        }
+
+        function animate() {
+            if (!state.animating) return;
+            state.progress += 0.008; 
+            if (state.progress >= 1) {
+                state.progress = 1;
+                stopAnimation();
+            }
+            els.sProg.value = state.progress;
+            els.vProg.textContent = Math.round(state.progress * 100) + '%';
+            render();
+            if (state.animating) {
+                animFrame = requestAnimationFrame(animate);
+            }
+        }
+
+        // ==========================================
+        //         自由切割拼图 (Sandbox) 核心逻辑
+        // ==========================================
+
+        function updateUndoBtn() {
+            if (!els.btnUndo) return;
+            if (state.history.length === 0) {
+                els.btnUndo.disabled = true;
+                els.btnUndo.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                els.btnUndo.disabled = false;
+                els.btnUndo.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function saveHistory() {
+            state.history.push(JSON.stringify(state.sandboxPolygons));
+            if (state.history.length > 30) state.history.shift(); // 最多保存30步操作
+            updateUndoBtn();
+        }
+
+        function handleUndo() {
+            if (state.history.length === 0) return;
+            const previousStateStr = state.history.pop();
+            state.sandboxPolygons = JSON.parse(previousStateStr);
+            state.activePolyIdx = -1; // 撤销后为了安全取消所有选中状态
+            updateUndoBtn();
+            render();
+        }
+
+        function handleCopyShape() {
+            if (state.sandboxPolygons.length > 0) {
+                saveHistory(); // 操作前保存历史记录
+                
+                // 确定要复制的目标图形：优先选中的图形，如果没有选中则默认复制第一个
+                let targetIdx = state.activePolyIdx !== -1 ? state.activePolyIdx : 0;
+                const basePoly = state.sandboxPolygons[targetIdx];
+                
+                const newPoints = basePoly.points.map(p => ({ x: p.x + 40, y: p.y - 40 }));
+                
+                let colorIdx = state.sandboxPolygons.length % state.colorPalette.length;
+                if (state.colorPalette[colorIdx] === basePoly.color) {
+                    colorIdx = (colorIdx + 1) % state.colorPalette.length;
+                }
+
+                state.sandboxPolygons.push({
+                    points: newPoints,
+                    color: state.colorPalette[colorIdx],
+                    stroke: '#64748b'
+                });
+                state.activePolyIdx = state.sandboxPolygons.length - 1; // 选中新复制的图形
+                render();
+            }
+        }
+
+        function getPolygonCentroid(pts) {
+            let cx = 0, cy = 0;
+            pts.forEach(p => { cx += p.x; cy += p.y; });
+            return { x: cx / pts.length, y: cy / pts.length };
+        }
+
+        function flipPolygon(poly) {
+            const center = getPolygonCentroid(poly.points);
+            // 水平镜像翻折 (围绕重心横坐标)
+            poly.points = poly.points.map(p => ({
+                x: 2 * center.x - p.x,
+                y: p.y
+            }));
+            // 重要：翻折会导致多边形顶点顺逆时针顺序反转，为了防止后续直线切割算法(叉乘)失效，必须恢复顺序
+            poly.points.reverse();
+        }
+
+        // 根据当前参数初始化一整块多边形
+        function initSandboxShape() {
+            const { shape, a, b, h, offset } = state;
+            let pts = [];
+            
+            // 注意顶点的顺序：需要逆时针或顺时针统一，保证凸多边形计算正确
+            if (shape === 'parallelogram') {
+                pts = [
+                    {x: START_X, y: START_Y},
+                    {x: START_X + a, y: START_Y},
+                    {x: START_X + a + offset, y: START_Y - h},
+                    {x: START_X + offset, y: START_Y - h}
+                ];
+            } else if (shape === 'triangle') {
+                pts = [
+                    {x: START_X, y: START_Y},
+                    {x: START_X + a, y: START_Y},
+                    {x: START_X + offset, y: START_Y - h}
+                ];
+            } else if (shape === 'trapezoid') {
+                pts = [
+                    {x: START_X, y: START_Y},
+                    {x: START_X + b, y: START_Y},
+                    {x: START_X + offset + a, y: START_Y - h},
+                    {x: START_X + offset, y: START_Y - h}
+                ];
+            }
+
+            state.sandboxPolygons = [{
+                points: pts,
+                color: state.colorPalette[0],
+                stroke: '#3b82f6'
+            }];
+            state.activePolyIdx = -1;
+            state.history = []; // 重新生成图形时清空历史记录
+            updateUndoBtn();
+            render();
+        }
+
+        // 获取鼠标在SVG坐标系内的位置
+        function getMousePos(evt) {
+            const clientX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+            const clientY = evt.clientY || (evt.touches && evt.touches[0].clientY);
+            
+            // 使用原生的矩阵转换来取代原先简单的按比例相乘，
+            // 这样能够完美兼容 viewbox 发生平移、缩放后的映射误差。
+            const pt = els.svg.createSVGPoint();
+            pt.x = clientX;
+            pt.y = clientY;
+            const svgP = pt.matrixTransform(els.svg.getScreenCTM().inverse());
+            
+            return { x: svgP.x, y: svgP.y };
+        }
+
+        function handleMouseDown(e) {
+            if (state.mode !== 'sandbox') return;
+            const pos = getMousePos(e);
+            
+            if (state.sandboxTool === 'cut') {
+                state.sandboxAction = 'cutting';
+                state.cutStart = pos;
+                state.cutEnd = pos;
+            } else if (state.sandboxTool === 'drag') {
+                // 1. 先检测是否点击了旋转手柄
+                if (state.activePolyIdx !== -1 && state.activePolyIdx < state.sandboxPolygons.length) {
+                    const activePoly = state.sandboxPolygons[state.activePolyIdx];
+                    const center = getPolygonCentroid(activePoly.points);
+                    const handlePos = { x: center.x, y: center.y - 60 };
+                    
+                    if (Math.hypot(pos.x - handlePos.x, pos.y - handlePos.y) < 20) {
+                        state.dragStartStateStr = JSON.stringify(state.sandboxPolygons); // 记录拖拽/旋转前状态
+                        state.sandboxAction = 'rotating';
+                        state.rotateCenter = center;
+                        state.lastMousePos = pos;
+                        state.dragStartMousePos = pos;
+                        state.dragStartPolyPoints = activePoly.points.map(p => ({...p}));
+                        return;
+                    }
+                }
+
+                // 2. 射线法寻找被点击的多边形（从上到下遍历以选中最顶层）
+                let foundIdx = -1;
+                for (let i = state.sandboxPolygons.length - 1; i >= 0; i--) {
+                    if (pointInPolygon(pos, state.sandboxPolygons[i].points)) {
+                        foundIdx = i;
+                        break;
+                    }
+                }
+
+                if (foundIdx !== -1) {
+                    const poly = state.sandboxPolygons[foundIdx];
+                    const now = Date.now();
+                    
+                    // 检测双击 (300ms内连续点击同一个碎片)
+                    if (now - state.lastClickTime < 300 && state.lastClickedPoly === poly) {
+                        saveHistory(); // 翻折操作前保存历史记录
+                        flipPolygon(poly);
+                        state.lastClickTime = 0;
+                        state.lastClickedPoly = null;
+                        state.activePolyIdx = foundIdx;
+                        render();
+                        return; // 双击后直接返回，不触发拖拽
+                    }
+                    
+                    state.lastClickTime = now;
+                    state.lastClickedPoly = poly;
+
+                    state.dragStartStateStr = JSON.stringify(state.sandboxPolygons); // 记录拖拽/图层变动前状态
+                    
+                    // 把选中的碎片移到数组末尾（即画面最上层）
+                    state.sandboxPolygons.splice(foundIdx, 1);
+                    state.sandboxPolygons.push(poly);
+                    state.activePolyIdx = state.sandboxPolygons.length - 1;
+                    state.dragTargetIdx = state.activePolyIdx;
+                    state.sandboxAction = 'dragging';
+                    state.lastMousePos = pos;
+                    state.dragStartMousePos = pos;
+                    state.dragStartPolyPoints = poly.points.map(p => ({...p}));
+                } else {
+                    // 点到空白处，取消选中
+                    state.activePolyIdx = -1;
+                }
+                render();
+            }
+        }
+
+        function handleTouchStart(e) {
+            if (state.mode === 'sandbox') e.preventDefault();
+            handleMouseDown(e);
+        }
+
+        function handleMouseMove(e) {
+            if (state.mode !== 'sandbox' || state.sandboxAction === 'idle') return;
+            const pos = getMousePos(e);
+
+            if (state.sandboxAction === 'cutting') {
+                let currentEnd = { x: pos.x, y: pos.y };
+                
+                // 划线切割时的正交吸附 (水平/垂直，容差约5度)
+                const dx = pos.x - state.cutStart.x;
+                const dy = pos.y - state.cutStart.y;
+                const angleTolerance = 0.087; 
+                
+                if (Math.abs(dx) < Math.abs(dy) * angleTolerance) {
+                    currentEnd.x = state.cutStart.x; // 垂直吸附
+                } else if (Math.abs(dy) < Math.abs(dx) * angleTolerance) {
+                    currentEnd.y = state.cutStart.y; // 水平吸附
+                }
+                
+                state.cutEnd = currentEnd;
+                render();
+            } else if (state.sandboxAction === 'dragging') {
+                const totalDx = pos.x - state.dragStartMousePos.x;
+                const totalDy = pos.y - state.dragStartMousePos.y;
+                const tentativePoints = state.dragStartPolyPoints.map(p => ({ x: p.x + totalDx, y: p.y + totalDy }));
+
+                let snapDx = 0, snapDy = 0;
+                let snapped = false;
+                const snapTolerance = 20; // 边缘顶点吸附的距离阈值
+
+                // 遍历当前拖拽图形的每一条边
+                for (let i = 0; i < tentativePoints.length; i++) {
+                    const p1 = tentativePoints[i];
+                    const p2 = tentativePoints[(i + 1) % tentativePoints.length];
+                    const lenD = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+
+                    // 遍历其他所有静止图形的每一条边
+                    for (let j = 0; j < state.sandboxPolygons.length; j++) {
+                        if (j === state.dragTargetIdx) continue;
+                        const targetPoly = state.sandboxPolygons[j].points;
+                        
+                        for (let k = 0; k < targetPoly.length; k++) {
+                            const p3 = targetPoly[k];
+                            const p4 = targetPoly[(k + 1) % targetPoly.length];
+                            const lenS = Math.hypot(p4.x - p3.x, p4.y - p3.y);
+
+                            // 如果两边长度相近（误差2px以内），则检测是否靠近
+                            if (Math.abs(lenD - lenS) < 2) {
+                                // 检查顶点p1, p2是否分别靠近p4, p3（对向贴合，常用于拼接两块互补图形）
+                                if (Math.hypot(p1.x - p4.x, p1.y - p4.y) < snapTolerance &&
+                                    Math.hypot(p2.x - p3.x, p2.y - p3.y) < snapTolerance) {
+                                    snapDx = p4.x - p1.x;
+                                    snapDy = p4.y - p1.y;
+                                    snapped = true;
+                                    break;
+                                }
+                                // 检查顶点p1, p2是否分别靠近p3, p4（同向贴合，常用于矩形或翻折后的图形）
+                                if (Math.hypot(p1.x - p3.x, p1.y - p3.y) < snapTolerance &&
+                                    Math.hypot(p2.x - p4.x, p2.y - p4.y) < snapTolerance) {
+                                    snapDx = p3.x - p1.x;
+                                    snapDy = p3.y - p1.y;
+                                    snapped = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (snapped) break;
+                    }
+                    if (snapped) break;
+                }
+
+                const poly = state.sandboxPolygons[state.dragTargetIdx];
+                poly.points = tentativePoints.map(p => ({ x: p.x + snapDx, y: p.y + snapDy }));
+                
+                state.lastMousePos = pos;
+                render();
+            } else if (state.sandboxAction === 'rotating') {
+                const poly = state.sandboxPolygons[state.activePolyIdx];
+                const cx = state.rotateCenter.x;
+                const cy = state.rotateCenter.y;
+                
+                const startAngle = Math.atan2(state.dragStartMousePos.y - cy, state.dragStartMousePos.x - cx);
+                const currentAngle = Math.atan2(pos.y - cy, pos.x - cx);
+                let delta = currentAngle - startAngle;
+                
+                // 旋转吸附到 15 度 (PI / 12) 的整数倍，便于完美拼合
+                const snapAngle = Math.PI / 12;
+                const remainder = Math.abs(delta % snapAngle);
+                if (remainder < 0.08 || remainder > snapAngle - 0.08) { 
+                    delta = Math.round(delta / snapAngle) * snapAngle;
+                }
+                
+                // 基于初始状态绕中心点旋转每一个顶点
+                poly.points = state.dragStartPolyPoints.map(p => {
+                    const dx = p.x - cx;
+                    const dy = p.y - cy;
+                    return {
+                        x: cx + dx * Math.cos(delta) - dy * Math.sin(delta),
+                        y: cy + dx * Math.sin(delta) + dy * Math.cos(delta)
+                    };
+                });
+                
+                state.lastMousePos = pos;
+                render();
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (state.sandboxAction !== 'idle') e.preventDefault();
+            handleMouseMove(e);
+        }
+
+        function handleMouseUp() {
+            if (state.mode !== 'sandbox' || state.sandboxAction === 'idle') return;
+
+            if (state.sandboxAction === 'cutting') {
+                // 划线距离足够长才执行物理切割
+                const dx = state.cutEnd.x - state.cutStart.x;
+                const dy = state.cutEnd.y - state.cutStart.y;
+                if (Math.hypot(dx, dy) > 10) {
+                    saveHistory(); // 切割执行前保存历史记录
+                    performCut(state.cutStart, state.cutEnd);
+                    state.activePolyIdx = -1; // 切割后取消选中
+                }
+            } else if (state.sandboxAction === 'dragging' || state.sandboxAction === 'rotating') {
+                // 如果发生过实际拖拽或旋转导致坐标变动，才存入撤销历史
+                const currentStateStr = JSON.stringify(state.sandboxPolygons);
+                if (state.dragStartStateStr && currentStateStr !== state.dragStartStateStr) {
+                    state.history.push(state.dragStartStateStr);
+                    if (state.history.length > 30) state.history.shift();
+                    updateUndoBtn();
+                }
+            }
+            
+            state.sandboxAction = 'idle';
+            state.dragStartStateStr = null;
+            state.cutStart = null;
+            state.cutEnd = null;
+            state.dragTargetIdx = -1;
+            render();
+        }
+
+        // 射线法判断点是否在多边形内
+        function pointInPolygon(point, vs) {
+            let x = point.x, y = point.y;
+            let inside = false;
+            for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+                let xi = vs[i].x, yi = vs[i].y;
+                let xj = vs[j].x, yj = vs[j].y;
+                let intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        // 用线段AB对画布上所有图形进行切割检查
+        function performCut(A, B) {
+            const newPolygons = [];
+            let colorIdx = state.sandboxPolygons.length % state.colorPalette.length;
+
+            state.sandboxPolygons.forEach(polyObj => {
+                const poly = polyObj.points;
+                const pieces = splitPolygon(poly, A, B);
+                
+                if (pieces.length > 1) {
+                    // 切割成功，生成两块新的多边形
+                    newPolygons.push({
+                        points: pieces[0],
+                        color: polyObj.color, // 一半保留原色
+                        stroke: polyObj.stroke
+                    });
+                    
+                    colorIdx = (colorIdx + 1) % state.colorPalette.length;
+                    newPolygons.push({
+                        points: pieces[1],
+                        color: state.colorPalette[colorIdx], // 另一半赋予新颜色，便于区分
+                        stroke: '#64748b'
+                    });
+                } else {
+                    // 未被切中，原样保留
+                    newPolygons.push(polyObj);
+                }
+            });
+
+            state.sandboxPolygons = newPolygons;
+        }
+
+        // 核心凸多边形切割算法
+        function splitPolygon(poly, A, B) {
+            const polyA = [];
+            const polyB = [];
+
+            // 叉乘判断点在割线的哪一侧
+            const getSide = (p) => {
+                const cross = (B.x - A.x) * (p.y - A.y) - (B.y - A.y) * (p.x - A.x);
+                if (Math.abs(cross) < 1e-5) return 0;
+                return cross > 0 ? 1 : -1;
+            };
+
+            // 求多边形边(p1,p2)与割线AB的交点
+            const intersect = (p1, p2) => {
+                const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
+                const x3 = A.x, y3 = A.y, x4 = B.x, y4 = B.y;
+                const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+                if (denom === 0) return null; // 平行
+                const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+                return { x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1) };
+            };
+
+            for (let i = 0; i < poly.length; i++) {
+                const cur = poly[i];
+                const next = poly[(i + 1) % poly.length];
+                const sideCur = getSide(cur);
+                const sideNext = getSide(next);
+
+                // 根据点所在侧分配到新多边形中
+                if (sideCur >= 0) polyA.push(cur);
+                if (sideCur <= 0) polyB.push(cur);
+
+                // 若两个相邻顶点分布在直线两侧，说明边被切断，求交点并分配给两块多边形
+                if (sideCur !== 0 && sideNext !== 0 && sideCur !== sideNext) {
+                    const pt = intersect(cur, next);
+                    if (pt) {
+                        polyA.push(pt);
+                        polyB.push(pt);
+                    }
+                }
+            }
+            
+            // 过滤掉无效形状（少于三个顶点）
+            return [polyA, polyB].filter(p => p.length >= 3);
+        }
+
+        // --- SVG 渲染助手函数 ---
+        function createSVGElement(tag, attrs) {
+            const el = document.createElementNS(SVG_NS, tag);
+            for (let k in attrs) {
+                el.setAttribute(k, attrs[k]);
+            }
+            return el;
+        }
+
+        // 绘制尺寸标注线
+        function drawDimension(svg, x1, y1, x2, y2, text, offsetDir = 'down', offsetDist = 20) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const len = Math.hypot(dx, dy);
+            if (len === 0) return;
+            
+            let nx = -dy / len;
+            let ny = dx / len;
+            if (offsetDir === 'up' || offsetDir === 'left') {
+                nx = -nx; ny = -ny;
+            }
+
+            const ox1 = x1 + nx * offsetDist;
+            const oy1 = y1 + ny * offsetDist;
+            const ox2 = x2 + nx * offsetDist;
+            const oy2 = y2 + ny * offsetDist;
+
+            svg.appendChild(createSVGElement('line', {
+                x1: ox1, y1: oy1, x2: ox2, y2: oy2,
+                stroke: '#64748b', 'stroke-width': 1.5, 'stroke-dasharray': '4,4'
+            }));
+
+            svg.appendChild(createSVGElement('line', { x1, y1, x2: ox1, y2: oy1, stroke: '#cbd5e1', 'stroke-width': 1 }));
+            svg.appendChild(createSVGElement('line', { x1: x2, y1: y2, x2: ox2, y2: oy2, stroke: '#cbd5e1', 'stroke-width': 1 }));
+
+            const tx = (ox1 + ox2) / 2;
+            const ty = (oy1 + oy2) / 2;
+            const textEl = createSVGElement('text', {
+                x: tx, y: ty,
+                fill: '#1e293b', 'font-size': 14, 'font-weight': 'bold',
+                'text-anchor': 'middle', 'dominant-baseline': 'central',
+                'transform': `translate(${nx*12}, ${ny*12})`
+            });
+            textEl.textContent = text;
+            svg.appendChild(textEl);
+        }
+
+        // --- 主要渲染逻辑 ---
+        function render() {
+            els.svg.innerHTML = ''; 
+
+            // 绘制动态缩放网格背景 (使其跟随图形一起缩放)
+            const defs = createSVGElement('defs', {});
+            const pattern = createSVGElement('pattern', {id: 'bg-grid', width: 20, height: 20, patternUnits: 'userSpaceOnUse'});
+            pattern.appendChild(createSVGElement('circle', {cx: 1, cy: 1, r: 1, fill: '#cbd5e1'}));
+            defs.appendChild(pattern);
+            els.svg.appendChild(defs);
+            els.svg.appendChild(createSVGElement('rect', {
+                x: -5000, y: -5000, width: 10000, height: 10000, fill: 'url(#bg-grid)', 'pointer-events': 'none'
+            }));
+            
+            // 根据当前模式分支渲染
+            if (state.mode === 'sandbox') {
+                renderSandbox();
+                return;
+            }
+
+            // 演示模式
+            if (state.shape === 'parallelogram') renderParallelogram();
+            else if (state.shape === 'triangle') renderTriangle();
+            else if (state.shape === 'trapezoid') renderTrapezoid();
+
+            updateFormulaText();
+        }
+
+        // 渲染沙盒模式（自由切割出来的多边形）
+        function renderSandbox() {
+            // 1. 渲染所有多边形
+            state.sandboxPolygons.forEach((polyObj, idx) => {
+                const pointsStr = polyObj.points.map(p => `${p.x},${p.y}`).join(' ');
+                const isActive = (state.activePolyIdx === idx);
+                const isDragging = state.sandboxAction === 'dragging' && state.dragTargetIdx === idx;
+                
+                const polygon = createSVGElement('polygon', {
+                    points: pointsStr,
+                    fill: polyObj.color,
+                    stroke: isActive ? '#2563eb' : polyObj.stroke,
+                    'stroke-width': isActive ? 3 : 2,
+                    'stroke-linejoin': 'round',
+                    style: (isActive || isDragging) ? 'filter: drop-shadow(4px 6px 8px rgba(0,0,0,0.4)); cursor: grab;' : 'transition: filter 0.2s; cursor: grab;'
+                });
+                els.svg.appendChild(polygon);
+            });
+
+            // 2. 为当前激活的多边形绘制旋转手柄
+            if (state.activePolyIdx !== -1 && state.sandboxTool === 'drag' && state.activePolyIdx < state.sandboxPolygons.length) {
+                const polyObj = state.sandboxPolygons[state.activePolyIdx];
+                const center = getPolygonCentroid(polyObj.points);
+                const handleY = center.y - 60;
+                
+                // 连接线
+                els.svg.appendChild(createSVGElement('line', {
+                    x1: center.x, y1: center.y, x2: center.x, y2: handleY,
+                    stroke: '#2563eb', 'stroke-width': 2, 'stroke-dasharray': '4,4'
+                }));
+                
+                // 手柄圆圈
+                els.svg.appendChild(createSVGElement('circle', {
+                    cx: center.x, cy: handleY, r: 12, fill: '#ffffff', stroke: '#2563eb', 'stroke-width': 3,
+                    style: 'cursor: ew-resize;'
+                }));
+
+                // 手柄中心小点
+                els.svg.appendChild(createSVGElement('circle', {
+                    cx: center.x, cy: handleY, r: 4, fill: '#2563eb',
+                    style: 'pointer-events: none;'
+                }));
+            }
+
+            // 3. 绘制当前正在拖拽的辅助切割线
+            if (state.sandboxAction === 'cutting' && state.cutStart && state.cutEnd) {
+                const dx = state.cutEnd.x - state.cutStart.x;
+                const dy = state.cutEnd.y - state.cutStart.y;
+                const len = Math.hypot(dx, dy);
+                if (len > 0) {
+                    // 画一条长辅助线
+                    const ex = dx / len * 1500;
+                    const ey = dy / len * 1500;
+                    els.svg.appendChild(createSVGElement('line', {
+                        x1: state.cutStart.x - ex, y1: state.cutStart.y - ey,
+                        x2: state.cutEnd.x + ex, y2: state.cutEnd.y + ey,
+                        stroke: '#ef4444', 'stroke-width': 2, 'stroke-dasharray': '6,6',
+                        opacity: 0.6
+                    }));
+                }
+            }
+        }
+
+        function renderParallelogram() {
+            const { a, h, offset, progress } = state;
+            
+            const rightBodyPoints = `${START_X + offset},${START_Y} ${START_X + a},${START_Y} ${START_X + a + offset},${START_Y - h} ${START_X + offset},${START_Y - h}`;
+            els.svg.appendChild(createSVGElement('polygon', { points: rightBodyPoints, fill: '#bfdbfe', stroke: '#3b82f6', 'stroke-width': 2, 'stroke-linejoin': 'round' }));
+
+            const leftTrianglePoints = `${START_X},${START_Y} ${START_X + offset},${START_Y} ${START_X + offset},${START_Y - h}`;
+            const g = createSVGElement('g', { transform: `translate(${progress * a}, 0)` });
+            const leftTriangle = createSVGElement('polygon', {
+                points: leftTrianglePoints,
+                fill: progress > 0 ? '#fed7aa' : '#bfdbfe', 
+                stroke: progress > 0 ? '#f97316' : '#3b82f6', 
+                'stroke-width': 2, 'stroke-linejoin': 'round',
+                style: 'transition: fill 0.2s;'
+            });
+            g.appendChild(leftTriangle);
+            els.svg.appendChild(g);
+
+            if (progress < 0.9) {
+                els.svg.appendChild(createSVGElement('line', {
+                    x1: START_X + offset, y1: START_Y, x2: START_X + offset, y2: START_Y - h, stroke: '#ef4444', 'stroke-width': 2, 'stroke-dasharray': '5,5'
+                }));
+                drawDimension(els.svg, START_X + offset, START_Y - h, START_X + offset, START_Y, `高 (h=${h})`, 'left', 15);
+            }
+
+            drawDimension(els.svg, START_X, START_Y, START_X + a, START_Y, `底 (a=${a})`, 'down', 25);
+            if (progress === 1) drawDimension(els.svg, START_X + offset, START_Y + 5, START_X + offset + a, START_Y + 5, `长方形长 = a`, 'down', 45);
+        }
+
+        function renderTriangle() {
+            const { a, h, offset, progress } = state;
+            const pts = `${START_X},${START_Y} ${START_X + a},${START_Y} ${START_X + offset},${START_Y - h}`;
+            
+            els.svg.appendChild(createSVGElement('polygon', { points: pts, fill: '#bbf7d0', stroke: '#22c55e', 'stroke-width': 2, 'stroke-linejoin': 'round' }));
+
+            const mx = (START_X + a + START_X + offset) / 2;
+            const my = (START_Y + START_Y - h) / 2;
+
+            const g = createSVGElement('g', { transform: `rotate(${progress * 180}, ${mx}, ${my})` });
+            g.appendChild(createSVGElement('polygon', {
+                points: pts, fill: progress > 0 ? '#fde047' : 'transparent', stroke: progress > 0 ? '#eab308' : 'transparent', 'stroke-width': 2, 'stroke-linejoin': 'round'
+            }));
+            els.svg.appendChild(g);
+
+            if (progress > 0 && progress < 1) els.svg.appendChild(createSVGElement('circle', { cx: mx, cy: my, r: 4, fill: '#ef4444' }));
+
+            els.svg.appendChild(createSVGElement('line', {
+                x1: START_X + offset, y1: START_Y, x2: START_X + offset, y2: START_Y - h, stroke: '#ef4444', 'stroke-width': 2, 'stroke-dasharray': '5,5'
+            }));
+
+            drawDimension(els.svg, START_X, START_Y, START_X + a, START_Y, `底 (a=${a})`, 'down', 25);
+            drawDimension(els.svg, START_X + offset, START_Y - h, START_X + offset, START_Y, `高 (h=${h})`, 'left', 15);
+
+            if (progress === 1) drawDimension(els.svg, START_X, START_Y + 5, START_X + a, START_Y + 5, `平行四边形底 = a`, 'down', 45);
+        }
+
+        function renderTrapezoid() {
+            const { a, b, h, offset, progress } = state;
+            const pts = `${START_X},${START_Y} ${START_X + b},${START_Y} ${START_X + offset + a},${START_Y - h} ${START_X + offset},${START_Y - h}`;
+            
+            els.svg.appendChild(createSVGElement('polygon', { points: pts, fill: '#e9d5ff', stroke: '#a855f7', 'stroke-width': 2, 'stroke-linejoin': 'round' }));
+
+            const mx = (START_X + b + START_X + offset + a) / 2;
+            const my = (START_Y + START_Y - h) / 2;
+
+            const g = createSVGElement('g', { transform: `rotate(${progress * 180}, ${mx}, ${my})` });
+            g.appendChild(createSVGElement('polygon', {
+                points: pts, fill: progress > 0 ? '#fbcfe8' : 'transparent', stroke: progress > 0 ? '#ec4899' : 'transparent', 'stroke-width': 2, 'stroke-linejoin': 'round'
+            }));
+            els.svg.appendChild(g);
+
+            if (progress > 0 && progress < 1) els.svg.appendChild(createSVGElement('circle', { cx: mx, cy: my, r: 4, fill: '#ef4444' }));
+
+            els.svg.appendChild(createSVGElement('line', {
+                x1: START_X + offset, y1: START_Y, x2: START_X + offset, y2: START_Y - h, stroke: '#ef4444', 'stroke-width': 2, 'stroke-dasharray': '5,5'
+            }));
+
+            drawDimension(els.svg, START_X, START_Y, START_X + b, START_Y, `下底 (b=${b})`, 'down', 25);
+            drawDimension(els.svg, START_X + offset, START_Y - h, START_X + offset + a, START_Y - h, `上底 (a=${a})`, 'up', -25);
+            drawDimension(els.svg, START_X + offset, START_Y - h, START_X + offset, START_Y, `高 (h=${h})`, 'left', 15);
+
+            if (progress === 1) {
+                const finalX = mx + (mx - START_X);
+                drawDimension(els.svg, START_X, START_Y + 5, finalX, START_Y + 5, `大平行四边形底 = a + b`, 'down', 50);
+            }
+        }
+
+        function updateFormulaText() {
+            const { shape, progress, a, b, h } = state;
+            let html = '';
+
+            if (shape === 'parallelogram') {
+                if (progress === 0) {
+                    html = `<p>这是一个<strong>平行四边形</strong>。我们要推导它的面积公式。</p><p class="mt-2 text-gray-500">提示：点击播放或拖动进度条，尝试使用<strong>“割补法”</strong>将其转化为我们熟悉的图形。</p>`;
+                } else if (progress < 1) {
+                    html = `<p>沿着平行四边形的高，剪下一个直角三角形。</p><p>将剪下的三角形平移到右侧进行拼接...</p>`;
+                } else {
+                    html = `<p class="text-green-700 font-bold mb-2">✨ 推导完成！</p><p>通过“割补法”，平行四边形变成了一个<strong>长方形</strong>。</p><ul class="list-disc pl-5 mt-2 space-y-1"><li>长方形的长 = 平行四边形的底 (<strong>a</strong>)</li><li>长方形的宽 = 平行四边形的高 (<strong>h</strong>)</li></ul><div class="mt-3 p-3 bg-white rounded border border-blue-200 text-center shadow-sm"><span class="block text-sm text-gray-500 mb-1">因为：长方形面积 = 长 × 宽</span><span class="font-bold text-lg text-blue-700">平行四边形面积 = a × h</span></div>`;
+                }
+            } else if (shape === 'triangle') {
+                if (progress === 0) {
+                    html = `<p>这是一个<strong>三角形</strong>。我们要推导它的面积公式。</p><p class="mt-2 text-gray-500">提示：点击播放，尝试使用<strong>“拼凑法”</strong>将其与另一个完全相同的图形组合。</p>`;
+                } else if (progress < 1) {
+                    html = `<p>复制一个完全相同的三角形。</p><p>将其绕一条边的中点旋转 180° 进行拼接...</p>`;
+                } else {
+                    html = `<p class="text-green-700 font-bold mb-2">✨ 推导完成！</p><p>两个完全相同的三角形拼成了一个<strong>平行四边形</strong>。</p><ul class="list-disc pl-5 mt-2 space-y-1"><li>平行四边形的底 = 三角形的底 (<strong>a</strong>)</li><li>平行四边形的高 = 三角形的高 (<strong>h</strong>)</li></ul><div class="mt-3 p-3 bg-white rounded border border-blue-200 text-center shadow-sm"><span class="block text-sm text-gray-500 mb-1">平行四边形面积 = a × h，而它是两个三角形组成</span><span class="font-bold text-lg text-blue-700">三角形面积 = (a × h) ÷ 2</span></div>`;
+                }
+            } else if (shape === 'trapezoid') {
+                if (progress === 0) {
+                    html = `<p>这是一个<strong>梯形</strong>。我们要推导它的面积公式。</p><p class="mt-2 text-gray-500">提示：点击播放，尝试复制一个相同的梯形并进行拼接组合。</p>`;
+                } else if (progress < 1) {
+                    html = `<p>复制一个完全相同的梯形。</p><p>将其倒置（旋转 180°）并与原梯形拼接在一起...</p>`;
+                } else {
+                    html = `<p class="text-green-700 font-bold mb-2">✨ 推导完成！</p><p>两个完全相同的梯形拼成了一个<strong>大平行四边形</strong>。</p><ul class="list-disc pl-5 mt-2 space-y-1"><li>大平行四边形的底 = 梯形上底 + 梯形下底 (<strong>a + b</strong>)</li><li>大平行四边形的高 = 梯形的高 (<strong>h</strong>)</li></ul><div class="mt-3 p-3 bg-white rounded border border-blue-200 text-center shadow-sm"><span class="block text-sm text-gray-500 mb-1">大平行四边形面积 = (a + b) × h</span><span class="font-bold text-lg text-blue-700">梯形面积 = (a + b) × h ÷ 2</span></div>`;
+                }
+            }
+            els.formulaText.innerHTML = html;
+        }
+
+        // 启动
+        init();
+
+    </script>
+</body>
+</html>
